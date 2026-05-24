@@ -1,0 +1,24 @@
+# APM 生成物
+apm_modules/
+.github/
+.claude/
+.cursor/
+.codex/
+.gemini/
+.windsurf/
+
+# Editor / OS
+.DS_Store
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Python (将来 CI / scripts 用)
+__pycache__/
+*.pyc
+.venv/
+
+# Node (将来 build 用)
+node_modules/
+*.log

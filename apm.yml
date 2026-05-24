@@ -1,0 +1,31 @@
+name: wordpress-to-static-migration
+version: 1.0.0
+description: |
+  WordPress サイトを静的サイトジェネレーター (Astro 推奨) + Cloudflare Pages へ移行する際の
+  チェックリストと地雷集。WP REST API による抽出、画像移行、URL 保持、リダイレクト戦略、
+  Astro Content Collections の slug 予約名や @astrojs/sitemap 互換性などの既知の地雷への
+  対処を提供する。
+author: kawadev-net
+license: MIT
+type: skill
+target:
+  - claude-code
+  - copilot
+  - cursor
+  - codex
+  - gemini
+  - windsurf
+includes: auto
+metadata:
+  repository: https://github.com/kawadev-net/wordpress-to-static-migration
+  homepage: https://github.com/kawadev-net/wordpress-to-static-migration
+  keywords:
+    - wordpress
+    - static-site
+    - migration
+    - astro
+    - cloudflare-pages
+    - hugo
+    - jekyll
+    - markdown
+    - jamstack

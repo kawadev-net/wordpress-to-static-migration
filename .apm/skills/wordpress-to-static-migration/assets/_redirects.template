@@ -1,0 +1,50 @@
+# Cloudflare Pages 用 _redirects テンプレート
+# WordPress → 静的サイト移行時の典型的なリダイレクトルール集
+#
+# 使い方:
+# 1. このファイルを public/_redirects にコピー
+# 2. プレースホルダ部分を実サイトのスラッグに置換（カテゴリ・タグは自動生成スクリプト推奨）
+# 3. 順序重要: 具体ルール → ワイルドカード の順に並べる
+#
+# 重要な注意:
+# - _redirects は先頭から順にマッチする
+# - 末尾スラッシュ統一 (trailingSlash: 'always' に合わせる)
+# - 1ファイルにつき最大 2,100 ルール (Cloudflare Pages)
+
+# === 自動生成: 旧カテゴリ・タグページ → トップへ 301 ===
+# build-redirects.mjs で raw-export/posts.json から自動生成する想定
+# 手動で書く場合は以下のような形:
+# /category/docker/     /     301
+# /category/server/     /     301
+# /tag/wsl2/            /     301
+# /tag/php/             /     301
+
+# === 静的セクション: AMP / feed / WordPress 内部URL ===
+
+# RSS フィードを新しい /rss.xml に集約
+/feed/                  /rss.xml    301
+/feed/atom/             /rss.xml    301
+/feed/rss/              /rss.xml    301
+/feed/rss2/             /rss.xml    301
+
+# WordPress 管理画面・REST API 等を トップへ 301（リンク切れ回避）
+/wp-admin/*             /           301
+/wp-login.php           /           301
+/wp-json/*              /           301
+/xmlrpc.php             /           301
+/wp-content/themes/*    /           301
+/wp-content/plugins/*   /           301
+
+# 旧サイトマップを新しい /sitemap.xml or /sitemap-index.xml に集約
+/sitemap-*.xml          /sitemap.xml   301
+
+# AMP ページ → 元記事へ 301
+# WP-AMP プラグインの典型 URL パターン
+/*/amp/                 /:splat/    301
+/*/amp                  /:splat/    301
+
+# === 任意: HTTP → HTTPS は Cloudflare Pages が自動で行うので不要 ===
+# === 任意: 旧ドメイン → 新ドメインは別途 Page Rule で対応 ===
+
+# === ※ 404 ページは Astro の src/pages/404.astro が dist/404.html に出力される ===
+# === ※ Cloudflare Pages はビルド成果物の 404.html を自動で 404 レスポンスに使う ===

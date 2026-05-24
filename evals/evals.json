@@ -1,0 +1,33 @@
+{
+  "skill_name": "wordpress-to-static-migration",
+  "evals": [
+    {
+      "id": 1,
+      "name": "brainstorm-cost-and-stack",
+      "prompt": "うちのワードプレスのブログがサーバー代月3000円かかってて重いし、もうほとんど更新してないのでなんとかしたい。記事は100本くらいで全部技術系のtipsで、月1万PVくらい。Adsense貼ってちょっと小遣い稼ぎしてます。なんかいい移行先ない？コスパ重視で。",
+      "expected_output": "ブレストモード: Cloudflare Pages + Astro を推奨する根拠（無料枠帯域無制限・商用OK・日本最速）を提示。次にユーザーの判断材料として、見た目維持/再構築、URL保持、コメント機能、計測タグなどの主要な意思決定を1問ずつ整理して聞く。具体的なホスティング比較表（GitHub Pages/Netlify/Vercel と Vercel が商用禁止なこと）にも触れる。",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "implementation-script",
+      "prompt": "WordPressブログを静的サイトに移行したいので、まず記事と画像を抽出するスクリプト書いてほしい。サイトは https://example.jp で、記事は120本くらいで2018-2024年の範囲。WP管理画面のログイン情報はもう無いんだけど、公開APIから取れる？",
+      "expected_output": "WP REST API (/wp-json/wp/v2/{posts,media}) を使った Node.js スクリプトを提示。重要ポイントとして (1) 画像サイズバリアントは /media に含まれないので投稿本文を grep して追加 DL、(2) p-retry でリトライ、(3) 並列度6が標準、(4) 既存ファイルスキップで冪等、(5) 件数アサート、(6) raw-export/ に保存して後から再変換可能、を盛り込む。fetch-posts.template.mjs と turndown-rules.template.mjs の構造に沿ったコードになる。",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "troubleshoot-slug-error",
+      "prompt": "WordPressから移行中のAstroサイトでビルドしたら ContentSchemaContainsSlugError って出るんだけどなんこれ。Zod schemaに slug: z.string() で書いてるだけなんだが。",
+      "expected_output": "原因: Astro Content Collections は slug を予約名扱い（filename 由来の自動生成プロパティ）。対処: (1) Zod schema から slug を削除（front matter に slug: が残るのは無害）、(2) ページ/テンプレートで entry.data.slug ではなく entry.slug を参照、(3) .md ファイル名を WP の slug と一致させる。具体的な before/after コード例を提示。",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "troubleshoot-images-404",
+      "prompt": "WordPress→Hugoに移行中。wgetでサイトミラーした画像は揃ってるんだけど、Hugo経由で見ると一部の画像が404になる。どこから来るんだこのURL: /uploads/2021/06/photo-1024x576.jpg",
+      "expected_output": "原因: -1024x576 のサフィックスは WordPress が自動生成する画像サイズバリアント。WP REST API の /media は原本のみ返すため、wget ミラーでも漏れている可能性。対処: (1) 記事本文を全文 grep して全画像URLを列挙、(2) wgetミラーに含まれない variant も追加 DL、もしくは (3) Hugo の image processing で原本から動的に再生成。具体的な grep コマンドと追加 DL スクリプトのスニペットを提示。",
+      "files": []
+    }
+  ]
+}

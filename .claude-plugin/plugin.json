@@ -1,0 +1,12 @@
+{
+  "name": "wordpress-to-static-migration",
+  "version": "1.0.0",
+  "description": "WordPress → 静的サイト (Astro + Cloudflare Pages) 移行のチェックリスト・地雷集 skill",
+  "author": "kawadev-net",
+  "license": "MIT",
+  "skills": [
+    {
+      "path": ".apm/skills/wordpress-to-static-migration"
+    }
+  ]
+}

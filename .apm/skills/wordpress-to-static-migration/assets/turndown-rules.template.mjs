@@ -50,6 +50,16 @@ function escapeHtmlForCode(s) {
   return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// fenced code block を生成する。コード本文に含まれる ``` でフェンスが途中で
+// 閉じて本文が漏れる（構造破壊）のを防ぐため、本文中の最長バッククォート連長 +1
+// （最低 3）のフェンスを使う（CommonMark 準拠）。
+function toFencedCodeBlock(code, lang = '') {
+  const runs = code.match(/`+/g) || [];
+  const longest = runs.reduce((max, run) => Math.max(max, run.length), 0);
+  const fence = '`'.repeat(Math.max(3, longest + 1));
+  return `\n\n${fence}${lang}\n${code}\n${fence}\n\n`;
+}
+
 /**
  * Crayon / 古い Luxeritas の [highlight_LANG]...[/highlight_LANG] shortcode を
  * <pre class="language-LANG"><code>...</code></pre> に変換する preprocessor。
@@ -82,7 +92,7 @@ export function createTurndown() {
     replacement: (_content, node) => {
       const lang = node.getAttribute('data-language') || '';
       const code = node.textContent.replace(/\n+$/, '');
-      return `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+      return toFencedCodeBlock(code, lang);
     },
   });
 
@@ -98,7 +108,7 @@ export function createTurndown() {
       const m = cls.match(/\blanguage-(\w+)/);
       const lang = m ? m[1] : '';
       const code = node.textContent.replace(/\n+$/, '').replace(/<br\s*\/?>/gi, '\n');
-      return `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+      return toFencedCodeBlock(code, lang);
     },
   });
 

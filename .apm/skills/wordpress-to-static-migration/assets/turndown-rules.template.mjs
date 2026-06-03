@@ -13,11 +13,51 @@ import TurndownService from 'turndown';
 
 // 移行元サイトに合わせて書き換え
 const SITE_HOST = 'yoursite.com';
-const WP_UPLOADS_HOST_RE = new RegExp(`^https?://${SITE_HOST.replace(/\./g, '\\.')}/wp-content/uploads/`);
+// 正規表現メタ文字を全てエスケープ（ドットだけでなく、手書きのホスト名に
+// 紛れ込みうる + ? ( ) 等が正規表現として解釈されないようにする）
+const escapeRegExp = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const WP_UPLOADS_HOST_RE = new RegExp(`^https?://${escapeRegExp(SITE_HOST)}/wp-content/uploads/`);
 
 function rewriteImageSrc(src) {
   if (!src) return src;
   return src.replace(WP_UPLOADS_HOST_RE, '/images/');
+}
+
+// --- Markdown エスケープヘルパ ---
+// 移行元 WP 本文は半信頼（コメント焼き込み・過去の改ざん投稿の可能性）なため、
+// 値を Markdown へ埋め込む前にエスケープして注入・構造破壊を防ぐ。
+
+// 画像 alt / リンクテキスト用: [ ] \ を退避し、改行は空白へ畳む
+function escapeMdText(s) {
+  return (s || '').replace(/[\\[\]]/g, '\\$&').replace(/[\r\n]+/g, ' ');
+}
+
+// リンク/画像の URL 用: 空白・括弧を含む場合は <...> 形式で包む（山括弧自体は除去）
+function escapeMdUrl(src) {
+  if (!src) return src;
+  const cleaned = src.replace(/[<>]/g, '');
+  return /[\s()]/.test(cleaned) ? `<${cleaned}>` : cleaned;
+}
+
+// GFM テーブルセル用: 区切りと衝突する | をエスケープ（textContent は既に空白圧縮済み）
+function escapeTableCell(s) {
+  return (s || '').replace(/\\/g, '\\\\').replace(/\|/g, '\\|');
+}
+
+// <pre><code> へ文字列を注入する際のエスケープ: & < > を実体参照化して
+// </code></pre> によるタグ脱出を防ぐ。turndown が textContent で復号するため原文は保たれる。
+function escapeHtmlForCode(s) {
+  return (s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+// fenced code block を生成する。コード本文に含まれる ``` でフェンスが途中で
+// 閉じて本文が漏れる（構造破壊）のを防ぐため、本文中の最長バッククォート連長 +1
+// （最低 3）のフェンスを使う（CommonMark 準拠）。
+function toFencedCodeBlock(code, lang = '') {
+  const runs = code.match(/`+/g) || [];
+  const longest = runs.reduce((max, run) => Math.max(max, run.length), 0);
+  const fence = '`'.repeat(Math.max(3, longest + 1));
+  return `\n\n${fence}${lang}\n${code}\n${fence}\n\n`;
 }
 
 /**
@@ -30,7 +70,8 @@ export function preprocessShortcodes(html) {
   if (!html) return html;
   return html.replace(
     /\[highlight_(\w+)\]([\s\S]*?)\[\/highlight_\1\]/g,
-    (_m, lang, code) => `<pre class="language-${lang}"><code>${code.trim()}</code></pre>`
+    (_m, lang, code) =>
+      `<pre class="language-${lang}"><code>${escapeHtmlForCode(code.trim())}</code></pre>`
   );
 }
 
@@ -51,7 +92,7 @@ export function createTurndown() {
     replacement: (_content, node) => {
       const lang = node.getAttribute('data-language') || '';
       const code = node.textContent.replace(/\n+$/, '');
-      return `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+      return toFencedCodeBlock(code, lang);
     },
   });
 
@@ -67,7 +108,7 @@ export function createTurndown() {
       const m = cls.match(/\blanguage-(\w+)/);
       const lang = m ? m[1] : '';
       const code = node.textContent.replace(/\n+$/, '').replace(/<br\s*\/?>/gi, '\n');
-      return `\n\n\`\`\`${lang}\n${code}\n\`\`\`\n\n`;
+      return toFencedCodeBlock(code, lang);
     },
   });
 
@@ -78,8 +119,8 @@ export function createTurndown() {
     replacement: (_content, node) => {
       const img = node.querySelector('img');
       if (!img) return '';
-      const src = rewriteImageSrc(img.getAttribute('src'));
-      const alt = img.getAttribute('alt') || '';
+      const src = escapeMdUrl(rewriteImageSrc(img.getAttribute('src')));
+      const alt = escapeMdText(img.getAttribute('alt'));
       return `\n\n![${alt}](${src})\n\n`;
     },
   });
@@ -88,9 +129,10 @@ export function createTurndown() {
   td.addRule('rewriteImg', {
     filter: 'img',
     replacement: (_content, node) => {
-      const src = rewriteImageSrc(node.getAttribute('src'));
-      const alt = node.getAttribute('alt') || '';
-      if (!src) return '';
+      const rawSrc = rewriteImageSrc(node.getAttribute('src'));
+      if (!rawSrc) return '';
+      const src = escapeMdUrl(rawSrc);
+      const alt = escapeMdText(node.getAttribute('alt'));
       return `![${alt}](${src})`;
     },
   });
@@ -117,7 +159,7 @@ export function createTurndown() {
       if (rows.length === 0) return '';
       const cellsOf = (row) =>
         Array.from(row.querySelectorAll('th,td')).map((c) =>
-          c.textContent.replace(/\s+/g, ' ').trim()
+          escapeTableCell(c.textContent.replace(/\s+/g, ' ').trim())
         );
       const headerCells = cellsOf(rows[0]);
       const bodyRows = rows.slice(1).map(cellsOf);

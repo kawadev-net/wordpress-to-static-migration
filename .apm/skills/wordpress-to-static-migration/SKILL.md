@@ -109,7 +109,7 @@ WordPress サイトを Astro (+ Cloudflare Pages) を中心とした構成へ移
   1. 最終的なディレクトリ構成（`scripts/`, `src/content/`, `public/images/` 等）を箇条書き or 図で提示
   2. ユーザーのリポジトリに `assets/fetch-posts.template.mjs` `assets/turndown-rules.template.mjs` `assets/_redirects.template` を**コピーする手順**を示す（`cp` コマンドで OK）
   3. **コピー後にユーザー固有の値（SITE_BASE_URL や EXPECTED_POSTS_RANGE など）を Claude 側で置換してから提示**する。テンプレート内の `// 移行元サイトに合わせて書き換え` のようなプレースホルダ向けメタコメントは**Claude 内部の事項**なので、ユーザー応答に転載しない
-  4. 実行コマンド（`npm install p-retry turndown` → `node scripts/fetch-posts.mjs` 等）と、想定出力（件数・ログ）を提示
+  4. 実行コマンド（`npm install p-retry turndown` → `node scripts/fetch-posts.mjs` 等）と、想定出力（件数・ログ）を提示。**サプライチェーン対策として `package-lock.json` を必ずコミットする**（供給網の改ざんで移行スクリプトが汚染されると、抽出データに不正な内容が混入しうるため）。再現性を厳格にするなら `npm install --save-exact` でバージョンをピン止めする（`@astrojs/sitemap@3.2.1` は既にこの方針）
   5. 細かい挙動カスタムが必要な場面（例: テーマ独自の shortcode）でだけ、該当する関数の差分パッチを提示
 
 - **トラブルシュート時**: 上記「既知の地雷」を先に確認し、該当があれば即対処、なければ症状を聞いて diagnoses する
